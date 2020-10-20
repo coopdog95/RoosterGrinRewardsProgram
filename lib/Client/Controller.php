@@ -1,85 +1,11 @@
 <?php
 
 
-// use WHMCS\Module\Addon\Rewards\functions;
+// use WHMCS\Module\Addon\Rewardsdev\functions;
 namespace WHMCS\Module\Addon\Rewards\Client;
 // include "../functions.php";
 use WHMCS\Module\Addon\Rewards\functions;
-/**
- * Sample Client Area Controller
- */
-class Constants {
-
-  const WEBHOSTING = 1.5;
-  const REDIRECTS = 1.5;
-  const DOMAIN = 1.0;
-  const SEO = 1.0;
-  const ADWORDS = 1.0;
-  const RETARGETING = 1.0;
-  const REMINDERS = 2.0;
-  const ONLINESCHEDULING = 2.0;
-  const VOIP = 3.0;
-  const WEBDEVELOPMENT = 1.0;
-  const EMAILS = 1.0;
-  const HHFORMS = 1.0;
-
-
-  const BENEFITS = array(
-    "diamond" => array(
-      "Priority Email Address",
-      "Free Access to Rooster Grin Domains",
-      "Template Website - $100 (every 3 years)",
-      "Custom Website - $500 (every 3 years)",
-      "Free VOIP Phone Hardware",
-      "50 Additional Keywords for SEO Free",
-      "Unlimited AdWords budget, no additional charge"
-    ),
-    "platinum" => array(
-      "Priority Email Address",
-      "Free Access to Rooster Grin Domains",
-      "Template Website - $200 (every 3 years)",
-      "Custom Website - $1,250 (every 3 years)",
-      "Free VOIP Phone Hardware",
-      "25 Additional Keywords for SEO Free",
-      "Additional $1,000 of AdWords budget, no additional charge"
-    ),
-    "gold" => array(
-      "Priority Email Address",
-      "Free Access to Rooster Grin Domains",
-      "Template Website - $400 (every 3 years)",
-      "Custom Website - $2,000 (every 3 years)",
-      "Free VOIP Phone Hardware",
-      "10 Additional Keywords for SEO Free"
-    ),
-    "silver" => array(
-      "Priority Email Address",
-      "Free Access to Rooster Grin Domains",
-      "5 Additional Keywords for SEO Free"
-    )
-  );
-
-  const POINTS_REQUIRED = array(
-    "diamond" => array(
-      "value" => 100000,
-      "formatted" => "100,000"
-    ),
-    "platinum" => array(
-      "value" => 50000,
-      "formatted" => "50,000"
-    ),
-    "gold" => array(
-      "value" => 30000,
-      "formatted" => "30,000"
-    ),
-    "silver" => array(
-      "value" => 10000,
-      "formatted" => "10,000"
-    ),
-  );
-
-}
-
-
+use WHMCS\Module\Addon\Rewards\constants;
 
 class Controller {
 
@@ -221,6 +147,8 @@ class Controller {
 
       $firstname = $results_clients["client"]["firstname"];
 
+      $example_invoice = null;
+
 
 
       for ($i=0; $i < count($invoices); $i++) {
@@ -236,6 +164,7 @@ class Controller {
         $minDate = min($n, $minDate);
         $returned_invoice = localAPI($invoice_command, $postData_invoice, $adminUsername);
         $invoice_items = $returned_invoice["items"]["item"];
+        $example_invoice = $returned_invoice;
 
         for ($j=0; $j < count($invoice_items); $j++) {
 
@@ -266,13 +195,6 @@ class Controller {
 
       $clientData["signUpDate"] = $minDate;
       $clientData["yearsAsClient"] = $f->getYearsAsClient($minDate);
-      $clientData["tier"] = $f->getClientTier($clientData);
-      if($clientData["status"] != "Active") {
-        $clientData["groupid"] = 7;
-      } else {
-        $clientData["groupid"] = $f->getGroupID($clientData["tier"]);
-      }
-      $clientBenefits = $constants::BENEFITS[$clientData["tier"]];
 
       // $clientData["tier"] = "gold";
 
@@ -290,6 +212,29 @@ class Controller {
 
       $groupUpdate = $f->updateGroupID($clientData, $groupid);
       $clientData["groupUpdate"] = $groupUpdate;
+      $clientData["averageMonthlyPoints"] = $f->getAverageMonthlyPoints($clientData);
+      $clientData["averageYearlyPoints"] = $clientData["averageMonthlyPoints"]*12;
+
+      $clientData["tier"] = $f->getClientTier($clientData);
+      if($clientData["status"] != "Active") {
+        $clientData["groupid"] = 7;
+      } else {
+        $clientData["groupid"] = $f->getGroupID($clientData["tier"]);
+      }
+      $clientBenefits = $constants::BENEFITS[$clientData["tier"]];
+
+      $tier_by_monthly = $f->tierByAverageMonthlyPoints($clientData);
+      $tier_by_points = $f->tierByPoints($clientData);
+      $avgYearlyPoints = intval($clientData["averageYearlyPoints"]);
+
+
+      $clientData["tierData"] = array(
+        "years" => $f->tierByYears($clientData),
+        "points" => $tier_by_points,
+        "monthly" => $tier_by_monthly,
+        "monthly_group_id" => $f->getGroupID($tier_by_monthly),
+        "points_group_id" => $f->getGroupID($tier_by_points)
+      );
 
       if (!isset($id)) {
         return array(
@@ -307,9 +252,11 @@ class Controller {
                 'clientBenefits' => $clientBenefits,
                 'productPoints' => $productPoints,
                 'firstname' => $firstname,
+                'example_invoice' => $example_invoice,
                 'years' => $years,
                 'status' => $clientData['status'],
                 'points' => $points,
+                'avgYearlyPoints' => $avgYearlyPoints,
                 'benefits' => $constants::BENEFITS,
                 'points_required' => $constants::POINTS_REQUIRED,
             ),

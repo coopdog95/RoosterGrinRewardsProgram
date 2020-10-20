@@ -8,9 +8,6 @@
   .rewards-container {
     margin-bottom: 20px;
   }
-  #firstname {
-    text-transform: capitalize;
-  }
   .tier-heading {
     margin-bottom: 18px;
   }
@@ -65,6 +62,10 @@
     font-weight: bold;
     font-size: 25px;
   }
+  #points span {
+    font-weight: 300;
+    font-size: 21px;
+  }
   #years {
     font-size: 22px;
   }
@@ -94,7 +95,7 @@
     text-transform: capitalize;
   }
   .requirements p {
-    font-size: 22px;
+    font-size: 21px;
     padding: 3px;
   }
   #check {
@@ -106,16 +107,9 @@
   }
 </style>
 
-
-<!-- <h2>Rewards Page</h2> -->
-
-<!-- <p>You will have either been prompted to login or already have an active login state to access this page.</p>
-<p>All the template variables you define along with some <a href="https://developers.whmcs.com/themes/variables/" target="_blank">additional standard template variables</a> are available within this template.<br>You can use the Smarty <em>{ldelim}debug{rdelim}</em> function call to see a full list.</p> -->
-
-
 <div class="row rewards-container">
   <div class="col-md-6 col-sm-12">
-    <h1>Hello, <span id="firstname">{$firstname}</span>!</h1>
+    <h1>Hello, {$firstname}!</h1>
     {if $status == 'Active'}
     <h5 id="years">Years as client: <span>{$years}</span></h5>
     {/if}
@@ -128,13 +122,14 @@
       {else}
       <h2 class="tier-heading">Current Tier: <span class="tier tier-{$clientData.tier}">{$clientData.tier}</span> </h2>
       {/if}
-    <h4 id="points">{$points} points</h4>
+    <h4 id="points">{$points} points <span>({$avgYearlyPoints} average annual points)</span></h4>
     {else}
     <h2 class="tier-heading">No tier, Status: <span class="tier status-{$status}">{$status}</span></h2>
     <h4 id="points">{$points} points</h4>
     {/if}
   </div>
 </div>
+<hr>
 <div class="row">
   <div class="col-md-6 col-sm-12 benefits">
     {if $clientData.tier != 'unknown' && $status == 'Active'}
@@ -179,12 +174,8 @@
         {else}
         <p>
         {/if}
-      <span>{$p@key}</span>: {$p.formatted} points <span id="check">{if $clientData.tier === $p@key}✓{/if}</span></p>
+      <span>{$p@key}</span>: {$p.total.formatted} total points & {$p.yearly.formatted} annual points <span id="check">{if $clientData.tier === $p@key}✓{/if}</span></p>
       {/foreach}
-      <!-- <p><span>Diamond</span>: {$points_required.diamond.formatted} points {if $clientData.totalPoints >= $points_required.diamond.value}☑️{/if}</p>
-      <p><span>Platinum</span>: {$points_required.platinum.formatted} points {if $clientData.totalPoints >= $points_required.platinum.value}☑️{/if}</p>
-      <p><span>Gold</span>: {$points_required.gold.formatted} points {if $clientData.totalPoints >= $points_required.gold.value}☑️{/if}</p>
-      <p><span>Silver</span>: {$points_required.silver.formatted} points {if $clientData.totalPoints >= $points_required.silver.value}☑️{/if}</p> -->
 
     </div>
 
@@ -227,15 +218,8 @@
 {$clientBenefits}
 {$productPoints}
 {$benefits}
-{debug}
-
+{$invoices}
+{$example_invoice}
 </div>
 
 <hr>
-
-<!-- <p>
-    <a href="{$modulelink}" class="btn btn-default">
-        <i class="fa fa-arrow-left"></i>
-        Return to addon module default page
-    </a>
-</p> -->

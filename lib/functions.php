@@ -2,13 +2,13 @@
 
 namespace WHMCS\Module\Addon\Rewards;
 
-use WHMCS\Module\Addon\Rewards\Client\Constants;
+use WHMCS\Module\Addon\Rewards\constants;
 
 class functions {
 
   public function getMultiplier($productName) {
 
-    $c = new Constants();
+    $c = new constants();
 
     if (strpos($productName, 'Search Engine Optimization') !== false) {
       return $c::SEO;
@@ -109,13 +109,50 @@ class functions {
 
   }
 
+  public function getAverageMonthlyPoints($data) {
+
+    $amountSpent = $data["totalPoints"];
+    $yearsAsClient = $data["yearsAsClient"];
+    $monthsAsClient = intval($yearsAsClient*12);
+
+    return floatval($amountSpent / $monthsAsClient);
+
+
+  }
+
   public function getClientTier($data) {
 
     $years = $data["yearsAsClient"];
     $points = $data["totalPoints"];
+    $monthly = $data["averageMonthlyPoints"];
 
     $yearsInt = intval(floor($years));
 
+
+    $silver = "silver";
+    $gold = "gold";
+    $platinum = "platinum";
+    $diamond = "diamond";
+    $unknown = "unknown";
+
+    $tier_by_years = self::tierByYears($data);
+    $tier_by_monthly = self::tierByAverageMonthlyPoints($data);
+    $tier_by_points = self::tierByPoints($data);
+
+    $groupId_monthly = self::getGroupID($tier_by_monthly);
+    $groupId_points = self::getGroupID($tier_by_points);
+
+    if ($groupId_monthly > $groupId_points) {
+      return $tier_by_monthly;
+    } else {
+      return $tier_by_points;
+    }
+    // return $tier_by_points;
+
+  }
+
+  public function tierByPoints($data) {
+    $points = $data["totalPoints"];
 
     $silver = "silver";
     $gold = "gold";
@@ -144,6 +181,82 @@ class functions {
     } else {
       return $unknown;
     }
+
+
+  }
+
+  public function tierByYears($data) {
+    $years = $data["yearsAsClient"];
+    // $yearsInt = intval(floor($years));
+
+    $silver = "silver";
+    $gold = "gold";
+    $platinum = "platinum";
+    $diamond = "diamond";
+    $unknown = "unknown";
+
+    if (isset($years) && $years > 0) {
+      switch ($years) {
+
+        case $years>=5:
+          return $diamond;
+
+        case $years>=3:
+          return $platinum;
+
+        case $years>=2:
+          return $gold;
+
+        case $years>=1:
+          return $silver;
+
+        default:
+          return $unknown;
+      }
+    } else {
+      return $unknown;
+    }
+  }
+
+  public function tierByAverageMonthlyPoints($data) {
+
+    //Tiers:
+
+    //Diamond = $10000 spent/yr (833.33/mo)
+    //Platinum = 7000/yr (583.33/mo)
+    //Gold = 5500/yr (458.33/mo)
+    //Silver = 3000/yr (250/mo)
+
+    $monthly = $data["averageMonthlyPoints"];
+
+    $silver = "silver";
+    $gold = "gold";
+    $platinum = "platinum";
+    $diamond = "diamond";
+    $unknown = "unknown";
+
+    if (isset($monthly) && $monthly > 0) {
+      switch ($monthly) {
+
+        case $monthly>=833.33:
+          return $diamond;
+
+        case $monthly>=583.33:
+          return $platinum;
+
+        case $monthly>=458.33:
+          return $gold;
+
+        case $monthly>=250.0:
+          return $silver;
+
+        default:
+          return $unknown;
+      }
+    } else {
+      return $unknown;
+    }
+
 
   }
 
@@ -180,7 +293,7 @@ class functions {
   public function updateGroupID($data, $old_groupid) {
 
     $new_groupid = $data["groupid"];
-    $id = $data["clientid"];
+    $id = $data["id"];
     $adminUsername = "Cooper";
     $updateClient_command = 'UpdateClient';
 
@@ -192,9 +305,8 @@ class functions {
           'groupid' => $new_groupid,
       );
       $u = localAPI($updateClient_command, $postData_clientUpdate, $adminUsername);
-
       if($u["result"] == "success") {
-        return "Group Update Success: " . Date();
+        return "Group Update Succes: " . Date();
       } else {
         return "Group Update Failed: " . Date();
       }
